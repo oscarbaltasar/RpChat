@@ -4,7 +4,11 @@ import com.oscarbaltasar.rpchat.RPChatMod;
 import com.oscarbaltasar.rpchat.Config.RPChatConfig;
 import com.oscarbaltasar.rpchat.Data.PlayerRPData;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.HoverEvent.EntityTooltipInfo;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -25,14 +29,29 @@ public class ChatEventHandler {
 
         boolean isGlobal = data.isGlobalChat();
         boolean isInCharacter = data.isInCharacter();
-        String displayName = isInCharacter && data.getCharacterName() != null ? data.getCharacterName() : sender.getName().getString();
+        String rawMessage = event.getMessage().getString();
 
         if (isGlobal) {
             event.setCanceled(true);
             for (ServerPlayer player : sender.server.getPlayerList().getPlayers()) {
                 PlayerRPData recipientData = RPChatMod.PLAYER_DATA.get(player.getUUID());
                 if (recipientData != null && (recipientData.isListeningToGlobal() || recipientData.isGlobalChat())) {
-                    player.sendSystemMessage(Component.literal("<" + sender.getName().getString() + "> " + event.getMessage().getString()));
+                    String hex = data.getCharColor();
+                    int rgb = Integer.parseInt(hex, 16);
+
+                    String nameText = "<" + sender.getName().getString() + "> ";
+                    Component nameComponent = Component.literal(nameText).withStyle(style -> style.withColor(rgb)
+                        .withHoverEvent(new HoverEvent(
+                        HoverEvent.Action.SHOW_ENTITY,
+                        new EntityTooltipInfo(EntityType.PLAYER, senderId, sender.getName())
+                    )));
+                    
+
+                    Component finalMessage = Component.empty()
+                        .append(nameComponent)
+                        .append(event.getMessage());
+                    player.sendSystemMessage(finalMessage);
+                    //player.sendSystemMessage(Component.literal("<" + sender.getName().getString() + "> " + rawMessage));
                 }
             }
             return;
@@ -48,18 +67,42 @@ public class ChatEventHandler {
         for (ServerPlayer player : players) {
             double distance = player.distanceTo(sender);
             if (distance <= maxRange) {
-                String rawMessage = event.getMessage().getString();
-                String degraded = degradeText(rawMessage, (float) distance, shortRange, mediumRange, maxRange);
-                String senderTag = "<" + displayName + "> ";
-                player.sendSystemMessage(Component.literal(senderTag + degraded));
+                float darknessFactor = getDarknessFactor((float) distance, shortRange, mediumRange, maxRange);
+            
+                // Handle name color
+                TextColor nameColor;
+                String hex = data.getCharColor();
+                int rgb = Integer.parseInt(hex, 16);
+                nameColor = TextColor.fromRgb(applyDarkness(rgb, darknessFactor));
+            
+                String nameText = "<" + (isInCharacter && data.getCharacterName() != null
+                                        ? data.getCharacterName()
+                                        : sender.getName().getString()) + "> ";
+                Component nameComponent = Component.literal(nameText).withStyle(style -> style.withColor(nameColor)
+                    .withHoverEvent(new HoverEvent(
+                    HoverEvent.Action.SHOW_ENTITY,
+                    new EntityTooltipInfo(EntityType.PLAYER, senderId, sender.getName())
+                )));
+            
+                // Message text gets darker too (gray-scale blend)
+                int msgColor = applyDarkness(0xBBBBBB, darknessFactor);
+                Component messageComponent = Component.literal(degradeText(rawMessage, (float) distance, shortRange, mediumRange, maxRange))
+                    .withStyle(style -> style.withColor(TextColor.fromRgb(msgColor)));
+            
+                Component finalMessage = Component.empty()
+                    .append(nameComponent)
+                    .append(messageComponent);
+                
+                player.sendSystemMessage(finalMessage);
             }
+            
         }
     }
 
     private static String degradeText(String message, float distance, int shortRange, int mediumRange, int maxRange) {
         if (distance <= shortRange) return message;
         float rangeSpan = maxRange - mediumRange;
-        float percent = rangeSpan > 0 ? Math.min((distance - mediumRange) / rangeSpan, 0.5f) : 0f;
+        float percent = rangeSpan > 0 ? Math.min(((distance - mediumRange) / rangeSpan) / 2, 0.5f) : 0f;
         Random rand = new Random();
         StringBuilder degraded = new StringBuilder();
         for (char c : message.toCharArray()) {
@@ -71,4 +114,19 @@ public class ChatEventHandler {
         }
         return degraded.toString();
     }
+
+    private static float getDarknessFactor(float distance, int shortRange, int mediumRange, int maxRange) {
+        if (distance <= shortRange) return 0f;
+        if (distance >= maxRange) return 1f;
+        float rangeSpan = maxRange - mediumRange;
+        return distance <= mediumRange ? 0.5f : Math.min((distance - mediumRange) / rangeSpan, 1f);
+    }
+    
+    private static int applyDarkness(int rgb, float darknessFactor) {
+        int r = (int) (((rgb >> 16) & 0xFF) * (1f - darknessFactor));
+        int g = (int) (((rgb >> 8) & 0xFF) * (1f - darknessFactor));
+        int b = (int) ((rgb & 0xFF) * (1f - darknessFactor));
+        return (r << 16) | (g << 8) | b;
+    }
+    
 }

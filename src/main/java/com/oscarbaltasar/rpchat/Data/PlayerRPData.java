@@ -4,8 +4,8 @@ import net.minecraft.nbt.CompoundTag;
 
 public class PlayerRPData {
     private String characterName = null;
-    private boolean inCharacter = true;
-    private boolean globalChat = false;
+    private boolean inCharacter = false;
+    private boolean globalChat = true;
     private boolean listeningToGlobal = true;
     private String charColor = "ffffff";
 
@@ -55,6 +55,7 @@ public class PlayerRPData {
         tag.putBoolean("InCharacter", inCharacter);
         tag.putBoolean("GlobalChat", globalChat);
         tag.putBoolean("ListeningToGlobal", listeningToGlobal);
+        tag.putString("CharColor", this.charColor);
         return tag;
     }
 
@@ -63,5 +64,6 @@ public class PlayerRPData {
         inCharacter = tag.getBoolean("InCharacter");
         globalChat = tag.getBoolean("GlobalChat");
         listeningToGlobal = tag.getBoolean("ListeningToGlobal");
+        if (tag.contains("CharColor")) charColor = tag.getString("CharColor");
     }
 }
