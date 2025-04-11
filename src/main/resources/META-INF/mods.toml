@@ -1,0 +1,39 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+
+license="${mod_license}"
+
+
+#issueTrackerURL="https://github.com/MinecraftForge/MinecraftForge/issues"
+#showAsResourcePack=false
+#clientSideOnly=false
+
+[[mods]]
+    modId="rpchatmod"
+    version="1.0.0"
+    displayName="RP Chat"
+    #updateJSONURL="https://raw.githubusercontent.com/Lothrazar/ForgeTemplate/trunk/1.20/update.json" #optional
+    #displayURL="https://www.curseforge.com/minecraft/mc-mods/_curseslug_"
+    #logoFile=""
+    credits="Thanks to forge fml mcp Mojang"
+    authors="oscarbaltasar"
+    description='''
+    rpchatmod by oscarbaltasar
+    '''
+    #displayTest="MATCH_VERSION"
+
+[[dependencies.rpchatmod]]
+    modId="forge" 
+    mandatory=true 
+    versionRange="[47,)"
+    ordering="NONE"
+    side="SERVER"
+
+[[dependencies.rpchatmod]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,)"
+    ordering="NONE"
+    side="SERVER"
+	
+	
