@@ -39,19 +39,21 @@ public class ChatEventHandler {
                     String hex = data.getCharColor();
                     int rgb = Integer.parseInt(hex, 16);
 
-                    String nameText = "<" + sender.getName().getString() + "> ";
+                    String nameText = sender.getName().getString();
+                    Component beforeName = Component.literal("<");
                     Component nameComponent = Component.literal(nameText).withStyle(style -> style.withColor(rgb)
                         .withHoverEvent(new HoverEvent(
                         HoverEvent.Action.SHOW_ENTITY,
                         new EntityTooltipInfo(EntityType.PLAYER, senderId, sender.getName())
                     )));
-                    
+                    Component afterName = Component.literal("> ");
 
                     Component finalMessage = Component.empty()
+                        .append(beforeName)
                         .append(nameComponent)
+                        .append(afterName)
                         .append(event.getMessage());
                     player.sendSystemMessage(finalMessage);
-                    //player.sendSystemMessage(Component.literal("<" + sender.getName().getString() + "> " + rawMessage));
                 }
             }
             return;
@@ -75,9 +77,9 @@ public class ChatEventHandler {
                 int rgb = Integer.parseInt(hex, 16);
                 nameColor = TextColor.fromRgb(applyDarkness(rgb, darknessFactor));
             
-                String nameText = "<" + (isInCharacter && data.getCharacterName() != null
+                String nameText = (isInCharacter && data.getCharacterName() != null
                                         ? data.getCharacterName()
-                                        : sender.getName().getString()) + "> ";
+                                        : sender.getName().getString());
                 Component nameComponent = Component.literal(nameText).withStyle(style -> style.withColor(nameColor)
                     .withHoverEvent(new HoverEvent(
                     HoverEvent.Action.SHOW_ENTITY,
@@ -86,11 +88,15 @@ public class ChatEventHandler {
             
                 // Message text gets darker too (gray-scale blend)
                 int msgColor = applyDarkness(0xBBBBBB, darknessFactor);
+                Component beforeName = Component.literal("<").withStyle(style -> style.withColor(TextColor.fromRgb(msgColor)));
+                Component afterName = Component.literal("> ").withStyle(style -> style.withColor(TextColor.fromRgb(msgColor)));
                 Component messageComponent = Component.literal(degradeText(rawMessage, (float) distance, shortRange, mediumRange, maxRange))
                     .withStyle(style -> style.withColor(TextColor.fromRgb(msgColor)));
             
                 Component finalMessage = Component.empty()
+                    .append(beforeName)
                     .append(nameComponent)
+                    .append(afterName)
                     .append(messageComponent);
                 
                 player.sendSystemMessage(finalMessage);
@@ -119,7 +125,8 @@ public class ChatEventHandler {
         if (distance <= shortRange) return 0f;
         if (distance >= maxRange) return 1f;
         float rangeSpan = maxRange - mediumRange;
-        return distance <= mediumRange ? 0.5f : Math.min((distance - mediumRange) / rangeSpan, 1f);
+        /* Formula is: If close than medium range: 0.5f, otherwise do (((dx-mr)/mtoh) / 2) + 0.5f. Unless the configuration is extremely wrong this should always be equal or less than 1.0f */
+        return distance <= mediumRange ? 0.5f : Math.min((((distance - mediumRange) / rangeSpan) / 2) + 0.5f, 1.0f);
     }
     
     private static int applyDarkness(int rgb, float darknessFactor) {
