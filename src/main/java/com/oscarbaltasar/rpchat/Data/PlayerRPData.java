@@ -61,9 +61,9 @@ public class PlayerRPData {
 
     public void deserializeNBT(CompoundTag tag) {
         if (tag.contains("CharacterName")) characterName = tag.getString("CharacterName");
-        inCharacter = tag.getBoolean("InCharacter");
-        globalChat = tag.getBoolean("GlobalChat");
-        listeningToGlobal = tag.getBoolean("ListeningToGlobal");
+        if (tag.contains("InCharacter")) inCharacter = tag.getBoolean("InCharacter");
+        if (tag.contains("GlobalChat")) globalChat = tag.getBoolean("GlobalChat");
+        if (tag.contains("ListeningToGlobal")) listeningToGlobal = tag.getBoolean("ListeningToGlobal");
         if (tag.contains("CharColor")) charColor = tag.getString("CharColor");
     }
 }
